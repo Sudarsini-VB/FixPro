@@ -95,7 +95,7 @@ FixPro uses AI to:
 
 ## 🧩 Conclusion
 
-FixPro bridges the gap between students and administration by combining **AI intelligence**, **modern UI/UX**, and **efficient workflows** to create a smarter and faster issue management system.
+FixPro bridges the gap between students and administration by combining **AI intelligence**, **modern UI/UX**, and **efficient workflows** to create a smarter and faster issue management system.#FullStack web development
 
 ---
 
