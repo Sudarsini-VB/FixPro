@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FixPro | AI Hostel Maintenance System</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5; --primary-dark: #4338ca;
+            --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --muted: #64748b;
+            --danger: #ef4444; --warning: #f97316; --success: #10b981; --info: #3b82f6;
+            --shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            --3d: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+            --radius: 16px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+        
+        /* Layout */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+        header { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 50; }
+        .nav-content { display: flex; justify-content: space-between; align-items: center; height: 70px; }
+        
+        /* Components */
+        .card { background: var(--card); border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.6); box-shadow: var(--shadow); transition: all 0.3s; transform-style: preserve-3d; }
+        .card:hover { transform: translateY(-5px); box-shadow: var(--3d); }
+        .btn { padding: 0.8rem 1.5rem; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-ghost { background: transparent; color: var(--muted); }
+        .btn-ghost:hover { color: var(--text); background: #f1f5f9; }
+        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+        
+        .input { width: 100%; padding: 0.8rem 1rem; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 0.95rem; transition: 0.2s; background: #fff; }
+        .input:focus { border-color: var(--primary); outline: none; }
+        
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .badge-urgent { background: #fee2e2; color: var(--danger); }
+        .badge-high { background: #ffedd5; color: var(--warning); }
+        .badge-medium { background: #fef9c3; color: #ca8a04; }
+        .badge-low { background: #dbeafe; color: var(--info); }
+
+        /* Views */
+        .view { display: none; padding: 2rem 0; animation: fadeIn 0.4s; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Grids */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+        .grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem; }
+        @media (max-width: 768px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+        /* Analytics Bars */
+        .bar-container { margin-bottom: 1rem; }
+        .bar-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem; }
+        .bar-track { height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 5px; transition: width 1s ease; }
+
+        /* Toast */
+        #toast { position: fixed; bottom: 2rem; right: 2rem; z-index: 100; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast-msg { background: #0f172a; color: white; padding: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); animation: slideIn 0.3s; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        /* Admin Tabs */
+        .admin-tabs { display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid #e2e8f0; }
+        .tab-btn { padding: 0.8rem 1.5rem; border-bottom: 3px solid transparent; font-weight: 600; color: var(--muted); cursor: pointer; }
+        .tab-btn.active { border-bottom-color: var(--primary); color: var(--primary); }
+        
+        /* AI Box */
+        .ai-box { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0; border-radius: 12px; padding: 1rem; margin-top: 1rem; display: none; align-items: start; gap: 1rem; }
+        .ai-box.active { display: flex; animation: slideUp 0.3s; }
+        @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- Header -->
+    <header id="main-header" style="display: none;">
+        <div class="container nav-content">
+            <div style="font-weight: 800; font-size: 1.5rem; color: var(--primary);">FixPro</div>
+            <nav id="nav-links" style="display: flex; gap: 1rem;"></nav>
+        </div>
+    </header>
+
+    <!-- Login View -->
+    <div id="view-login" class="view active">
+        <div class="container" style="display: flex; justify-content: center; align-items: center; min-height: 85vh;">
+            <div class="card" style="padding: 2.5rem; width: 100%; max-width: 420px; text-align: center;">
+                <h2 style="margin-bottom: 0.5rem;">Welcome to FixPro</h2>
+                <p style="color: var(--muted); margin-bottom: 2rem;">AI-Powered Hostel Maintenance</p>
+
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: #f1f5f9; padding: 4px; border-radius: 10px;">
+                    <button class="btn" id="tab-student" style="flex:1; background: white; color: var(--primary);">Student</button>
+                    <button class="btn" id="tab-admin" style="flex:1; background: transparent; color: var(--muted);">Admin</button>
+                </div>
+
+                <form id="login-form">
+                    <input type="email" id="email" class="input" placeholder="Email Address" style="margin-bottom: 1rem;" required>
+                    <input type="password" id="pass" class="input" placeholder="Password" style="margin-bottom: 1rem;" required>
+                    
+                    <div id="student-fields" class="grid-2" style="margin-bottom: 1.5rem;">
+                        <input type="text" id="room" class="input" placeholder="Room No." required>
+                        <select id="block" class="input" required>
+                            <option value="">Select Block</option>
+                            <option value="Block A">Block A</option>
+                            <option value="Block B">Block B</option>
+                            <option value="Block C">Block C</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+                </form>
+                <p id="error" style="color: var(--danger); margin-top: 1rem; display: none;"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student View -->
+    <div id="view-student" class="view">
+        <div class="container">
+            <!-- Announcements Section -->
+            <div id="student-announcements" style="margin-bottom: 2rem;"></div>
+
+            <div class="grid-2" style="gap: 2rem;">
+                <!-- Left: Raise Issue -->
+                <div class="card" style="padding: 2rem; grid-column: span 2;">
+                    <h3 style="margin-bottom: 1rem;">Raise Issue</h3>
+                    <form id="issue-form">
+                        <input type="text" id="subject" class="input" placeholder="Subject" style="margin-bottom: 1rem;" required>
+                        <textarea id="desc" class="input" placeholder="Describe issue..." style="min-height: 100px; margin-bottom: 1rem;" required oninput="AI.analyze(this.value)"></textarea>
+                        
+                        <div id="ai-res" class="ai-box">
+                            <div style="background: var(--primary); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">🤖</div>
+                            <div>
+                                <strong>AI Analysis:</strong> <span id="ai-prio" class="badge badge-low">Low</span>
+                                <p id="ai-action" style="font-size: 0.9rem; color: var(--muted);">Waiting for input...</p>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="margin-top: 1.5rem; width: 100%;">Submit Ticket</button>
+                    </form>
+                </div>
+
+                <!-- My Tickets (Full width now that Workers are removed) -->
+                <div class="card" style="padding: 2rem; grid-column: span 2;">
+                    <h3 style="margin-bottom: 1rem;">My Tickets</h3>
+                    <div id="ticket-list" style="display: flex; flex-direction: column; gap: 1rem; max-height: 400px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lost & Found View -->
+    <div id="view-lostfound" class="view">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 2rem;">
+                <h3>Lost & Found</h3>
+                <button class="btn btn-primary" onclick="document.getElementById('lf-form').style.display='block'">+ Report Item</button>
+            </div>
+
+            <div id="lf-form" class="card" style="padding: 2rem; margin-bottom: 2rem; display: none;">
+                <h4>Report Lost Item</h4>
+                <input type="text" id="lf-name" class="input" placeholder="Item Name" style="margin: 1rem 0;">
+                <textarea id="lf-desc" class="input" placeholder="Description" style="margin-bottom: 1rem; min-height: 80px;"></textarea>
+                <div style="border: 2px dashed #cbd5e1; padding: 1rem; text-align: center; border-radius: 10px; margin-bottom: 1rem; cursor: pointer;" onclick="document.getElementById('lf-img').click()">
+                    📷 Upload Image
+                </div>
+                <input type="file" id="lf-img" accept="image/*" style="display: none;" onchange="App.handleImg(this)">
+                <button class="btn btn-primary" onclick="App.submitLF()">Submit</button>
+            </div>
+
+            <div id="lf-grid" class="grid-auto"></div>
+        </div>
+    </div>
+
+    <!-- Admin View -->
+    <div id="view-admin" class="view">
+        <div class="container">
+            <h2 style="margin-bottom: 1.5rem;">Admin Console</h2>
+            
+            <!-- Admin Tabs -->
+            <div class="admin-tabs">
+                <div class="tab-btn active" onclick="App.switchAdminTab('issues')">Issues</div>
+                <div class="tab-btn" onclick="App.switchAdminTab('analytics')">Analytics</div>
+                <div class="tab-btn" onclick="App.switchAdminTab('workers')">Workers</div>
+                <div class="tab-btn" onclick="App.switchAdminTab('announce')">Announcements</div>
+            </div>
+
+            <!-- Tab: Issues -->
+            <div id="adm-tab-issues" class="admin-content">
+                <div class="grid-4" style="gap: 1rem; margin-bottom: 2rem;">
+                    <div class="card" style="padding: 1.5rem; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--primary);" id="adm-total">0</div>
+                        <div>Total Issues</div>
+                    </div>
+                    <div class="card" style="padding: 1.5rem; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--danger);" id="adm-urgent">0</div>
+                        <div>Urgent</div>
+                    </div>
+                    <div class="card" style="padding: 1.5rem; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--warning);" id="adm-high">0</div>
+                        <div>High Priority</div>
+                    </div>
+                    <div class="card" style="padding: 1.5rem; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--success);" id="adm-resolved">0</div>
+                        <div>Resolved</div>
+                    </div>
+                </div>
+
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead style="background: #f1f5f9;">
+                            <tr>
+                                <th style="padding: 1rem;">Subject</th>
+                                <th style="padding: 1rem;">Priority</th>
+                                <th style="padding: 1rem;">Status</th>
+                                <th style="padding: 1rem;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adm-table"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab: Analytics -->
+            <div id="adm-tab-analytics" class="admin-content" style="display: none;">
+                <div class="grid-2">
+                    <div class="card" style="padding: 2rem;">
+                        <h4>Issues by Priority</h4>
+                        <div id="chart-priority" style="margin-top: 1.5rem;"></div>
+                    </div>
+                    <div class="card" style="padding: 2rem;">
+                        <h4>Issues by Block</h4>
+                        <div id="chart-block" style="margin-top: 1.5rem;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Workers -->
+            <div id="adm-tab-workers" class="admin-content" style="display: none;">
+                <div class="grid-2" style="gap: 2rem;">
+                    <div class="card" style="padding: 2rem;">
+                        <h4>Add New Worker</h4>
+                        <input type="text" id="w-name" class="input" placeholder="Full Name" style="margin: 1rem 0;">
+                        <input type="text" id="w-role" class="input" placeholder="Role (e.g. Plumber)" style="margin-bottom: 1rem;">
+                        <input type="text" id="w-phone" class="input" placeholder="Phone Number" style="margin-bottom: 1rem;">
+                        <button class="btn btn-primary" onclick="App.addWorker()">Add Worker</button>
+                    </div>
+                    <div class="card" style="padding: 2rem;">
+                        <h4>Current Staff</h4>
+                        <div id="worker-list-admin" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Announcements -->
+            <div id="adm-tab-announce" class="admin-content" style="display: none;">
+                <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
+                    <h4>Create Announcement</h4>
+                    <input type="text" id="ann-title" class="input" placeholder="Title (e.g. Water Maintenance)" style="margin: 1rem 0;">
+                    <textarea id="ann-content" class="input" placeholder="Details..." style="margin-bottom: 1rem; min-height: 80px;"></textarea>
+                    <button class="btn btn-primary" onclick="App.addAnnouncement()">Post Update</button>
+                </div>
+                <div id="announcement-list" class="grid-2"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="toast"></div>
+</div>
+
+<script>
+// --- DATABASE ---
+const DB_KEY = 'fixpro_db_v5';
+const INIT_DB = {
+    users: [{id: 'admin', email: 'sudarsinivb@gmail.com', pass: '123', role: 'admin', name: 'Sudarsini'}],
+    issues: [],
+    lost: [],
+    announcements: [
+        {id: 1, title: 'Scheduled Maintenance', content: 'Block A electrical maintenance on Tuesday 2PM.', date: new Date().toLocaleDateString()}
+    ],
+    workers: [
+        {id: 1, name: 'Raju Kumar', role: 'Plumber', phone: '9876543210'},
+        {id: 2, name: 'Amit Singh', role: 'Electrician', phone: '9876543211'}
+    ]
+};
+
+const db = {
+    data: JSON.parse(localStorage.getItem(DB_KEY)) || INIT_DB,
+    save() { localStorage.setItem(DB_KEY, JSON.stringify(this.data)); },
+    getUser(e) { return this.data.users.find(u => u.email === e); },
+    addUser(u) { this.data.users.push(u); this.save(); },
+    addIssue(i) { this.data.issues.push(i); this.save(); },
+    updateIssue(id, s) { const x = this.data.issues.find(i => i.id === id); if(x) { x.status = s; this.save(); } },
+    addLost(l) { this.data.lost.unshift(l); this.save(); },
+    updateLost(id, s) { const x = this.data.lost.find(i => i.id === id); if(x) { x.status = s; this.save(); } },
+    addAnnouncement(a) { this.data.announcements.unshift(a); this.save(); },
+    addWorker(w) { this.data.workers.push(w); this.save(); }
+};
+
+// --- AI ENGINE ---
+const AI = {
+    analyze(text) {
+        const t = text.toLowerCase();
+        let p = 'Low', a = 'Maintenance crew dispatched.';
+        if (t.includes('fire') || t.includes('shock') || t.includes('burst')) { p = 'Urgent'; a = 'DANGER: Evacuate immediately.'; }
+        else if (t.includes('leak') || t.includes('water') || t.includes('wire')) { p = 'High'; a = 'Turn off main supply.'; }
+        else if (t.includes('fan') || t.includes('furniture')) { p = 'Medium'; a = 'Avoid using equipment.'; }
+        
+        this.show(p, a);
+        return { priority: p, action: a };
+    },
+    show(p, a) {
+        document.getElementById('ai-res').classList.add('active');
+        const badge = document.getElementById('ai-prio');
+        badge.className = `badge badge-${p.toLowerCase()}`;
+        badge.innerText = p;
+        document.getElementById('ai-action').innerText = a;
+    }
+};
+
+// --- APP LOGIC ---
+const App = {
+    user: null,
+    role: 'student',
+    imgBase64: null,
+
+    init() {
+        this.bindEvents();
+        const sess = sessionStorage.getItem('fp_user');
+        if (sess) { this.user = JSON.parse(sess); this.route(); }
+        else this.nav('view-login');
+    },
+
+    bindEvents() {
+        document.getElementById('tab-student').onclick = () => this.setRole('student');
+        document.getElementById('tab-admin').onclick = () => this.setRole('admin');
+        document.getElementById('login-form').onsubmit = e => { e.preventDefault(); this.login(); };
+        document.getElementById('issue-form').onsubmit = e => { e.preventDefault(); this.submitIssue(); };
+    },
+
+    setRole(r) {
+        this.role = r;
+        const s = document.getElementById('tab-student');
+        const a = document.getElementById('tab-admin');
+        const f = document.getElementById('student-fields');
+        if(r === 'student') {
+            s.style.background='white'; s.style.color='var(--primary)';
+            a.style.background='transparent'; a.style.color='var(--muted)';
+            f.style.display='grid';
+        } else {
+            a.style.background='white'; a.style.color='var(--primary)';
+            s.style.background='transparent'; s.style.color='var(--muted)';
+            f.style.display='none';
+        }
+    },
+
+    login() {
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('pass').value;
+        const u = db.getUser(e);
+        const err = document.getElementById('error');
+
+        if (this.role === 'admin') {
+            if (u && u.role === 'admin' && u.pass === p) this.success(u);
+            else { err.style.display = 'block'; err.innerText = 'Invalid Admin'; }
+        } else {
+            const room = document.getElementById('room').value;
+            const block = document.getElementById('block').value;
+            if (!room || !block) { err.style.display = 'block'; err.innerText = 'Fill Room & Block'; return; }
+            
+            if (u && u.role === 'student' && u.pass === p) { u.room = room; u.block = block; db.save(); this.success(u); }
+            else if (u) { err.style.display = 'block'; err.innerText = 'Wrong Password'; }
+            else { 
+                const newUser = { id: 's'+Date.now(), email: e, pass: p, role: 'student', name: e.split('@')[0], room, block };
+                db.addUser(newUser); this.success(newUser);
+            }
+        }
+    },
+
+    success(u) {
+        this.user = u;
+        sessionStorage.setItem('fp_user', JSON.stringify(u));
+        document.getElementById('error').style.display = 'none';
+        this.route();
+    },
+
+    route() {
+        document.getElementById('main-header').style.display = 'block';
+        this.renderNav();
+        if (this.user.role === 'admin') { this.renderAdmin(); this.nav('view-admin'); }
+        else { this.renderStudent(); this.nav('view-student'); }
+    },
+
+    renderNav() {
+        const n = document.getElementById('nav-links');
+        if (this.user.role === 'admin')
+            n.innerHTML = `<button class="btn btn-ghost" onclick="App.nav('view-admin')">Dashboard</button><button class="btn btn-primary" onclick="App.logout()">Logout</button>`;
+        else
+            n.innerHTML = `<button class="btn btn-ghost" onclick="App.nav('view-student')">Home</button><button class="btn btn-ghost" onclick="App.nav('view-lostfound')">Lost & Found</button><button class="btn btn-primary" onclick="App.logout()">Logout</button>`;
+    },
+
+    logout() {
+        this.user = null;
+        sessionStorage.removeItem('fp_user');
+        document.getElementById('main-header').style.display = 'none';
+        this.nav('view-login');
+    },
+
+    nav(id) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(id === 'view-lostfound') this.renderLF();
+        if(id === 'view-student') this.renderStudent();
+    },
+
+    toast(m) {
+        const t = document.createElement('div');
+        t.className = 'toast-msg';
+        t.innerText = m;
+        document.getElementById('toast').appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+    },
+
+    // --- STUDENT ---
+    renderStudent() {
+        // Announcements
+        document.getElementById('student-announcements').innerHTML = db.data.announcements.map(a => `
+            <div class="card" style="padding: 1rem; border-left: 4px solid var(--warning); margin-bottom: 1rem;">
+                <div style="display:flex; justify-content:space-between;">
+                    <strong>${a.title}</strong>
+                    <span style="font-size:0.8rem; color:var(--muted);">${a.date}</span>
+                </div>
+                <p style="margin-top:0.5rem; font-size:0.9rem;">${a.content}</p>
+            </div>
+        `).join('') || '<p class="text-muted">No announcements.</p>';
+
+        // Workers List REMOVED as requested
+        // document.getElementById('worker-list-student').innerHTML = ... 
+
+        // Tickets
+        const my = db.data.issues.filter(i => i.userId === this.user.id);
+        document.getElementById('ticket-list').innerHTML = my.length ? my.map(i => `
+            <div class="card" style="padding: 1rem;">
+                <div style="display:flex; justify-content:space-between;">
+                    <strong>${i.subject}</strong>
+                    <span class="badge badge-${i.priority.toLowerCase()}">${i.priority}</span>
+                </div>
+                <p style="font-size:0.85rem; color:var(--muted); margin-top:0.25rem;">${i.desc}</p>
+                <div style="font-size:0.8rem; margin-top:0.5rem; text-align:right;">Status: <span style="font-weight:bold; color:${i.status==='Resolved'?'var(--success)':i.status==='In Progress'?'var(--warning)':'var(--info)'}">${i.status}</span></div>
+            </div>
+        `).join('') : '<p style="color:var(--muted)">No tickets.</p>';
+    },
+
+    submitIssue() {
+        const aiRes = AI.analyze(document.getElementById('desc').value);
+        db.addIssue({
+            id: Date.now(),
+            userId: this.user.id,
+            subject: document.getElementById('subject').value,
+            desc: document.getElementById('desc').value,
+            priority: aiRes.priority,
+            status: 'Pending',
+            block: this.user.block
+        });
+        this.toast('Issue Submitted');
+        document.getElementById('issue-form').reset();
+        document.getElementById('ai-res').classList.remove('active');
+        this.renderStudent();
+    },
+
+    // --- ADMIN ---
+    switchAdminTab(tab) {
+        document.querySelectorAll('.admin-content').forEach(d => d.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`adm-tab-${tab}`).style.display = 'block';
+        event.target.classList.add('active');
+        if(tab === 'analytics') this.renderAnalytics();
+    },
+
+    renderAdmin() {
+        const all = db.data.issues;
+        document.getElementById('adm-total').innerText = all.length;
+        document.getElementById('adm-urgent').innerText = all.filter(i => i.priority === 'Urgent').length;
+        document.getElementById('adm-high').innerText = all.filter(i => i.priority === 'High').length;
+        document.getElementById('adm-resolved').innerText = all.filter(i => i.status === 'Resolved').length;
+
+        // Table with In Progress Logic
+        document.getElementById('adm-table').innerHTML = all.map(i => `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:1rem;">
+                    <div style="font-weight:600">${i.subject}</div>
+                    <div style="font-size:0.8rem; color:var(--muted)">${i.block} • User ID: ${i.userId.toString().slice(-4)}</div>
+                </td>
+                <td style="padding:1rem;"><span class="badge badge-${i.priority.toLowerCase()}">${i.priority}</span></td>
+                <td style="padding:1rem;">${i.status}</td>
+                <td style="padding:1rem;">
+                    ${i.status === 'Pending' ? `<button class="btn btn-primary" style="background:var(--warning); padding:0.4rem 0.8rem; font-size:0.8rem;" onclick="App.updateStatus(${i.id}, 'In Progress')">In Progress</button>` : 
+                      i.status === 'In Progress' ? `<button class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.8rem;" onclick="App.resolve(${i.id})">Resolve</button>` : 
+                      '✔'}
+                </td>
+            </tr>
+        `).join('');
+
+        // Workers List
+        document.getElementById('worker-list-admin').innerHTML = db.data.workers.map(w => `
+            <div style="display:flex; justify-content:space-between; padding:0.5rem; border-bottom:1px solid #eee;">
+                <span>${w.name} (${w.role}) - ${w.phone}</span>
+                <button class="btn btn-sm btn-ghost" style="color:var(--danger)" onclick="App.deleteWorker(${w.id})">Remove</button>
+            </div>
+        `).join('');
+
+        // Announcement List
+        document.getElementById('announcement-list').innerHTML = db.data.announcements.map(a => `
+            <div class="card" style="padding:1rem; border:1px solid #eee;">
+                <div style="font-weight:600; margin-bottom:0.5rem;">${a.title}</div>
+                <div style="font-size:0.9rem;">${a.content}</div>
+                <div style="font-size:0.75rem; color:var(--muted); margin-top:0.5rem; text-align:right;">${a.date}</div>
+            </div>
+        `).join('');
+    },
+
+    // New helper for status updates
+    updateStatus(id, status) {
+        db.updateIssue(id, status);
+        this.renderAdmin();
+        this.toast(`Status updated to ${status}`);
+    },
+
+    resolve(id) {
+        db.updateIssue(id, 'Resolved');
+        this.renderAdmin();
+        this.toast('Resolved');
+    },
+
+    renderAnalytics() {
+        const issues = db.data.issues;
+        const total = issues.length || 1;
+
+        // Priority Chart
+        const prios = { Urgent: 0, High: 0, Medium: 0, Low: 0 };
+        issues.forEach(i => { if(prios[i.priority] !== undefined) prios[i.priority]++; });
+        
+        document.getElementById('chart-priority').innerHTML = Object.entries(prios).map(([k,v]) => `
+            <div class="bar-container">
+                <div class="bar-label"><span>${k}</span><span>${v}</span></div>
+                <div class="bar-track"><div class="bar-fill" style="width: ${(v/total)*100}%; background: ${k==='Urgent'?'var(--danger)':k==='High'?'var(--warning)':k==='Medium'?'#ca8a04':'var(--info)'}"></div></div>
+            </div>
+        `).join('');
+
+        // Block Chart
+        const blocks = { 'Block A': 0, 'Block B': 0, 'Block C': 0 };
+        issues.forEach(i => { if(blocks[i.block] !== undefined) blocks[i.block]++; });
+
+        document.getElementById('chart-block').innerHTML = Object.entries(blocks).map(([k,v]) => `
+            <div class="bar-container">
+                <div class="bar-label"><span>${k}</span><span>${v}</span></div>
+                <div class="bar-track"><div class="bar-fill" style="width: ${(v/total)*100}%; background: var(--primary);"></div></div>
+            </div>
+        `).join('');
+    },
+
+    addWorker() {
+        const n = document.getElementById('w-name').value;
+        const r = document.getElementById('w-role').value;
+        const p = document.getElementById('w-phone').value;
+        if(!n || !p) return;
+        db.addWorker({ id: Date.now(), name: n, role: r, phone: p });
+        this.toast('Worker Added');
+        document.getElementById('w-name').value = '';
+        document.getElementById('w-role').value = '';
+        document.getElementById('w-phone').value = '';
+        this.renderAdmin();
+    },
+
+    deleteWorker(id) {
+        db.data.workers = db.data.workers.filter(w => w.id !== id);
+        db.save();
+        this.renderAdmin();
+    },
+
+    addAnnouncement() {
+        const t = document.getElementById('ann-title').value;
+        const c = document.getElementById('ann-content').value;
+        if(!t) return;
+        db.addAnnouncement({ id: Date.now(), title: t, content: c, date: new Date().toLocaleDateString() });
+        this.toast('Announcement Posted');
+        document.getElementById('ann-title').value = '';
+        document.getElementById('ann-content').value = '';
+        this.renderAdmin();
+    },
+
+    // --- LOST & FOUND ---
+    handleImg(input) {
+        if (input.files && input.files[0]) {
+            const r = new FileReader();
+            r.onload = e => { this.imgBase64 = e.target.result; };
+            r.readAsDataURL(input.files[0]);
+        }
+    },
+
+    submitLF() {
+        const name = document.getElementById('lf-name').value;
+        const desc = document.getElementById('lf-desc').value;
+        if (!name) return;
+        db.addLost({ id: Date.now(), userId: this.user.id, name, desc, img: this.imgBase64, status: 'Lost' });
+        this.toast('Reported');
+        document.getElementById('lf-form').style.display = 'none';
+        document.getElementById('lf-name').value = '';
+        this.renderLF();
+    },
+
+    renderLF() {
+        document.getElementById('lf-grid').innerHTML = db.data.lost.map(i => `
+            <div class="card" style="padding:1rem;">
+                <img src="${i.img || 'https://via.placeholder.com/300'}" style="width:100%; height:180px; object-fit:cover; border-radius:8px; margin-bottom:1rem;">
+                <div style="display:flex; justify-content:space-between;">
+                    <strong>${i.name}</strong>
+                    <span class="badge ${i.status==='Lost'?'badge-high':i.status==='Found'?'badge-medium':'badge-low'}">${i.status}</span>
+                </div>
+                <p style="font-size:0.9rem; color:var(--muted); margin:0.5rem 0;">${i.desc}</p>
+                <button class="btn btn-primary" style="width:100%; margin-top:0.5rem; font-size:0.8rem;" onclick="App.cycleLF(${i.id}, '${i.status}')">
+                    ${i.status==='Lost'?'Mark Found':i.status==='Found'?'Get it':'Closed'}
+                </button>
+            </div>
+        `).join('');
+    },
+
+    cycleLF(id, s) {
+        let next = 'Lost';
+        if(s === 'Lost') next = 'Found';
+        else if(s === 'Found') next = 'Get it';
+        db.updateLost(id, next);
+        this.renderLF();
+    }
+};
+
+App.init();
+</script>
+</body>
+</html>
